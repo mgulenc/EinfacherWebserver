@@ -5,60 +5,65 @@ import java.net.Socket;
 import java.net.SocketException;
 
 public class SimpleWebserver extends Thread {
-    private static final String LOG_FILE = "access.log";
+    private static final String LOG_FILE = "access.log";        //Filename, Contains information about accesses
     private static final int SOCKET_TIMEOUT = 30000;
-    private File root;
-    private boolean log;
-    private ServerSocket serverSocket;
+    private File Root;
+    private ServerSocket Server_Socket;
+    private final Boolean Log;
 
-    public SimpleWebserver(File root, int port, boolean log) throws IOException {
-        this.root = root.getCanonicalFile();
-        this.log = log;
-        System.out.println(this.root);
-        if (!root.isDirectory()) {
+    public SimpleWebserver(File root, int port, Boolean log) throws IOException {
+
+        Root = root.getCanonicalFile();                  //Reference to index.html
+        System.out.println(Root);                       //sends index.html
+        if (!Root.isDirectory()) {
             throw new IOException("No directory");
         }
-        if (log)
+
+        Server_Socket = new ServerSocket(port);
+
+        //If Log is true, the access will be written in the access.log file
+        Log = log;
+        if (Log)
             AccessLog.initializeLogger(new File(LOG_FILE));
+
+        //Starts the Server and adds an event-handler to shut down correctly
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
                 shutdown();
             }
         });
-        serverSocket = new ServerSocket(port);
     }
 
     public void run() {
         while (true) {
             try {
-                Socket socket;
-                try {
-                    socket = serverSocket.accept();
-                } catch (SocketException e) {
-                    System.out.println(e.getMessage());
-                    break;
-                }
-
+                Socket socket = Server_Socket.accept();
                 socket.setSoTimeout(SOCKET_TIMEOUT);
 
-                Request request = new Request(socket, root, log);
+                Request request = new Request(socket, Root, Log);
                 request.start();
-            } catch (IOException e) {
-                System.err.println(e);
+            }
+            catch (SocketException e) {
+                System.out.println(e.getMessage());
+                break;
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+                break;
             }
         }
     }
 
     public void shutdown() {
         try {
-            if (serverSocket != null) {
-                serverSocket.close();
+            if (Server_Socket != null) {
+                Server_Socket.close();
             }
             if (AccessLog.logger != null) {
                 AccessLog.logger.close();
             }
         } catch (IOException e) {
-
+            e.printStackTrace();
         }
     }
 }
