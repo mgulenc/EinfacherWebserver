@@ -24,7 +24,7 @@ public class Request extends Thread {
     public Request(Socket socket, File root, Boolean log) throws IOException {
         Socket = socket;
         Root = root;
-        Log=log;
+        Log = log;
     }
 
     public void run() {
@@ -41,11 +41,11 @@ public class Request extends Thread {
 
             //Just GET is implemented
             if (!request.startsWith("GET")) {
-                sendError(Out, Status.NOT_IMPLEMENTED,"Just the GET HTTP-Methode is implemented.");
+                sendError(Out, Status.NOT_IMPLEMENTED,"Just the GET HTTP-Method is implemented.");
                 return;
             }
 
-            //Other queries will be ignored
+            //Other queries in the URL will be ignored
             Path = request.substring(4, request.length() - 9);//http: ignored
             int idx = Path.indexOf(request);
             if (idx >= 0) {
@@ -74,6 +74,8 @@ public class Request extends Thread {
                 Out.write(buffer, 0, bytesRead);
             }
             Out.flush();
+            in.close();
+            Socket.close();
         } catch (SocketTimeoutException e) {
             System.out.println("Time out! " + e.getMessage());
         } catch (FileNotFoundException fileNotFoundException) {
@@ -96,7 +98,7 @@ public class Request extends Thread {
     } //writes information about the request in access.log
 
     private Boolean checkFile() throws IOException {
-        //Test file
+        //Checks that path isn't a directory
         if (IndexFile.isDirectory()) {
             File indexFile = new File(IndexFile, "index.html");
             if (indexFile.exists() && !indexFile.isDirectory()) {
@@ -109,11 +111,13 @@ public class Request extends Thread {
 
         //Access outside root is not permitted
         if (!IndexFile.getCanonicalPath().startsWith(Root.getCanonicalPath())) {
-            sendError(Out, Status.FORBIDDEN, "");
+            sendError(Out, Status.FORBIDDEN, "You can't have access to this file. Ask your admin for more information.");
             return false;
         }
+
+        //Checks file existence
         if (!IndexFile.exists()) {
-            sendError(Out, Status.NOT_FOUND, "");
+            sendError(Out, Status.NOT_FOUND, "The file doesn't exist.");
             return false;
         }
 
@@ -122,8 +126,7 @@ public class Request extends Thread {
     private void sendError(BufferedOutputStream out, Status status, String reason)
             throws IOException {
         String msg = status.getMessage() + " : " + reason;
-        sendHeader(out, status, "text/html", msg.length(),
-                System.currentTimeMillis());
+        sendHeader(out, status, "text/html", msg.length(), System.currentTimeMillis());
         out.write(msg.getBytes());
         out.flush();
     }
