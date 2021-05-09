@@ -3,6 +3,7 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.URLConnection;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -46,7 +47,7 @@ public class Request extends Thread {
             if (idx >= 0) {
                 path = path.substring(0, idx);
             }
-            File file = new File(root, URLDecoder.decode(path, "UTF-8")).getCanonicalFile();
+            File file = new File(root, URLDecoder.decode(path, StandardCharsets.UTF_8)).getCanonicalFile();
             if (file.isDirectory()) {
                 File indexFile = new File(file, "index.html");
                 if (indexFile.exists() && !indexFile.isDirectory()) {
@@ -83,7 +84,7 @@ public class Request extends Thread {
         } catch (SocketTimeoutException e) {
             System.out.println(e.getMessage());
         } catch (IOException e) {
-            System.err.println(e);
+            System.err.println(e.getMessage());
         }
     }
 

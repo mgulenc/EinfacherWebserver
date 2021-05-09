@@ -4,14 +4,14 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 
-public class SimpleWebserver extends Thread {
+public class BasicWebserver extends Thread {
     private static final String LOG_FILE = "access.log";
     private static final int SOCKET_TIMEOUT = 30000;
-    private File root;
-    private boolean log;
-    private ServerSocket serverSocket;
+    private final File root;
+    private final boolean log;
+    private final ServerSocket serverSocket;
 
-    public SimpleWebserver(File root, int port, boolean log) throws IOException {
+    public BasicWebserver(File root, int port, boolean log) throws IOException {
         this.root = root.getCanonicalFile();
         this.log = log;
         System.out.println(this.root);
@@ -58,7 +58,7 @@ public class SimpleWebserver extends Thread {
                 AccessLog.logger.close();
             }
         } catch (IOException e) {
-
+            System.err.println(e.getMessage());
         }
     }
 }
