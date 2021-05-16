@@ -13,86 +13,120 @@ import java.util.TimeZone;
 public class Request extends Thread {
     private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(
             "yyyy-MM-dd HH:mm:ss");
-    private final File root;
-    private final boolean log;
-    private final Socket socket;
+    private final Socket Socket;
+    private final File Root;
+    private final Boolean Log;
+    private String Path;
+    private File IndexFile;
+    private BufferedOutputStream Out;
 
-    public Request(Socket socket, File root, boolean log) {
-        this.socket = socket;
-        this.root = root;
-        this.log = log;
+
+    public Request(Socket socket, File root, Boolean log) throws IOException {
+        Socket = socket;
+        Root = root;
+        Log = log;
     }
 
     public void run() {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(
-                socket.getInputStream()));
-             BufferedOutputStream out = new BufferedOutputStream(
-                     socket.getOutputStream())) {
-            String request = in.readLine();
+        try {
+            InputStreamReader reader = new InputStreamReader(Socket.getInputStream());
+            BufferedReader in = new BufferedReader(reader);
+            String request = in.readLine(); //URL from Browser
+            Out = new BufferedOutputStream(Socket.getOutputStream());
+
             if (request == null || request.trim().length() == 0)
                 return;
-            if (log) {
-                AccessLog.logger.log("[" + simpleDateFormat.format(new Date())
-                        + " " + socket.getInetAddress().getHostAddress() + ":"
-                        + socket.getPort() + "] " + request);
-            }
+            if(Log)
+                writeAccess(request);
+
+            //Just GET is implemented
             if (!request.startsWith("GET")) {
-                sendError(out, Status.NOT_IMPLEMENTED,
-                        "Nur die HTTP-Methode GET ist implementiert.");
+                sendError(Out, Status.NOT_IMPLEMENTED,"Just the GET HTTP-Method is implemented.");
                 return;
             }
-            //Query Strings werden ignoriert.
-            String path = getPath(request);
-            int idx = path.indexOf(request);
+
+            //Other queries in the URL will be ignored
+            Path = request.substring(4, request.length() - 9);//http: ignored
+            int idx = Path.indexOf(request);
             if (idx >= 0) {
-                path = path.substring(0, idx);
+                Path = Path.substring(0, idx);
             }
-            File file = new File(root, URLDecoder.decode(path, StandardCharsets.UTF_8)).getCanonicalFile();
-            if (file.isDirectory()) {
-                File indexFile = new File(file, "index.html");
-                if (indexFile.exists() && !indexFile.isDirectory()) {
-                    file = indexFile;
-                } else {
-                    sendError(out, Status.FORBIDDEN, "");
-                }
-            }
-            //Zugriff außerhalb von root ist nicht erlaubt.
-            if (!file.getCanonicalPath().startsWith(root.getCanonicalPath())) {
-                sendError(out, Status.FORBIDDEN, "");
+
+            //calls the index.html file
+            IndexFile = new File(Root, URLDecoder.decode(Path, StandardCharsets.UTF_8)).getCanonicalFile();
+
+            if(!checkFile())
                 return;
-            }
-            if (!file.exists()) {
-                sendError(out, Status.NOT_FOUND, "");
-                return;
-            }
-            try (InputStream is = new BufferedInputStream(new FileInputStream(file))) {
-                String contentType = URLConnection.getFileNameMap().getContentTypeFor(file.getName());
 
-                if (contentType == null) {
-                    contentType = "application/octet-stream";
-                }
+            //Loads file
+            InputStream is = new BufferedInputStream(new FileInputStream(IndexFile));
+            String contentType = URLConnection.getFileNameMap().getContentTypeFor(IndexFile.getName());
 
-                sendHeader(out, Status.OK, contentType, file.length(), file.lastModified());
-
-                byte[] buffer = new byte[8192];
-                int bytesRead;
-                while ((bytesRead = is.read(buffer)) != -1) {
-                    out.write(buffer, 0, bytesRead);
-                }
+            if (contentType == null) {
+                contentType = "application/octet-stream";
             }
-            out.flush();
+
+            sendHeader(Out, Status.OK, contentType, IndexFile.length(), IndexFile.lastModified());
+
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                Out.write(buffer, 0, bytesRead);
+            }
+            Out.flush();
+            in.close();
+            Socket.close();
         } catch (SocketTimeoutException e) {
-            System.out.println(e.getMessage());
+            System.out.println("Time out! " + e.getMessage());
+        } catch (FileNotFoundException fileNotFoundException) {
+            fileNotFoundException.printStackTrace();
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            e.printStackTrace();
         }
     }
 
+    public void writeAccess(String request) throws IOException {
+        try {
+            AccessLog.logger.log("[" + simpleDateFormat.format(new Date())
+                    + " " + Socket.getInetAddress().getHostAddress() + ":"
+                    + Socket.getPort() + "] " + request);
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
+
+
+    } //writes information about the request in access.log
+
+    private Boolean checkFile() throws IOException {
+        //Checks that path isn't a directory
+        if (IndexFile.isDirectory()) {
+            File indexFile = new File(IndexFile, "index.html");
+            if (indexFile.exists() && !indexFile.isDirectory()) {
+                IndexFile = indexFile;
+            } else {
+                sendError(Out, Status.FORBIDDEN, "File doesn't exist or the path is wrong");
+                return false;
+            }
+        }
+
+        //Access outside root is not permitted
+        if (!IndexFile.getCanonicalPath().startsWith(Root.getCanonicalPath())) {
+            sendError(Out, Status.FORBIDDEN, "You can't have access to this file. Ask your admin for more information.");
+            return false;
+        }
+
+        //Checks file existence
+        if (!IndexFile.exists()) {
+            sendError(Out, Status.NOT_FOUND, "The file doesn't exist.");
+            return false;
+        }
+
+        return true;
+    }
     private void sendError(BufferedOutputStream out, Status status, String reason)
             throws IOException {
-        String msg = status.getMessage() + ":" + reason;
-        sendHeader(out, status, "text/html", msg.length(),
-                System.currentTimeMillis());
+        String msg = status.getMessage() + " : " + reason;
+        sendHeader(out, status, "text/html", msg.length(), System.currentTimeMillis());
         out.write(msg.getBytes());
         out.flush();
     }
@@ -104,15 +138,11 @@ public class Request extends Thread {
                         + "\r\nDate: " + getTime(System.currentTimeMillis())
                         + "\r\nServer: SimpleWebserver"
                         + "\r\nContent-Type: " + contentType
-                        + "\r\nContent-Lenght: " + length
+                        + "\r\nContent-Length: " + length
                         + "\r\nLast-Modified: " + getTime(time)
                         + "\r\nConnection: close"
                         + "\r\n\r\n";
         out.write(header.getBytes());
-    }
-
-    private static String getPath(String request) {
-        return request.substring(4, request.length() - 9);
     }
 
     private static String getTime(long time) {

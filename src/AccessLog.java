@@ -31,7 +31,7 @@ public class AccessLog {
             logFileWriter.flush();
             logFileWriter.close();
         } catch (IOException e) {
-            System.out.println(e.getMessage());
+            System.err.println(e.getMessage());
         }
     }
 }
