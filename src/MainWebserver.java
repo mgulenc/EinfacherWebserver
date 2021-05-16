@@ -14,7 +14,7 @@ public class MainWebserver {
     public static void main(String[] args) {
 
         //Load configuration
-        File configFile = new File("src/config.properties");
+        File configFile = new File("config.properties");
         try {
             FileReader reader = new FileReader(configFile);
             Properties props = new Properties();
