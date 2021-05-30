@@ -136,7 +136,7 @@ public class Request extends Thread {
         String header =
                 "HTTP/1.1 " + status.getCode() + " " + status.getMessage()
                         + "\r\nDate: " + getTime(System.currentTimeMillis())
-                        + "\r\nServer: SimpleWebserver"
+                        + "\r\nServer: BasicWebserver"
                         + "\r\nContent-Type: " + contentType
                         + "\r\nContent-Length: " + length
                         + "\r\nLast-Modified: " + getTime(time)

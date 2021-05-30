@@ -30,7 +30,7 @@ public class MainWebserver {
             //Start Webserver
             BasicWebserver server = new BasicWebserver(Root, Port, Log);
             server.start();
-            System.out.println("MyWebserver has started..");
+            System.out.println("MainWebserver has started..");
             System.out.println("ENTER oder ctrl + c to stop the server.");
             System.in.read();
             System.exit(0);
