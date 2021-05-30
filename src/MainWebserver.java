@@ -16,7 +16,7 @@ public class MainWebserver {
         //Load configuration
         File configFile = new File("src/config.properties");
         try {
-            FileReader reader = new FileReader(configFile);
+            FileReader reader = new FileReader(configFile); //Die Datei wird gelesen
             Properties props = new Properties();
             props.load(reader);
 
@@ -30,14 +30,14 @@ public class MainWebserver {
             //Start Webserver
             BasicWebserver server = new BasicWebserver(Root, Port, Log);
             server.start();
-            System.out.println("MyWebserver has started..");
+            System.out.println("MainWebserver has started..");
             System.out.println("ENTER oder ctrl + c to stop the server.");
             System.in.read();
             System.exit(0);
 
         } catch (FileNotFoundException ex) {
             System.err.println("There was an error with the configuration file: " + ex.getMessage());
-        } catch (IOException e){
+        } catch (IOException e) {
             System.err.println(e.getMessage());
         }
     }

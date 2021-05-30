@@ -7,14 +7,14 @@ import java.net.SocketException;
 public class BasicWebserver extends Thread {
     private static final String LOG_FILE = "access.log";        //Filename, Contains information about accesses
     private static final int SOCKET_TIMEOUT = 30000;
-    private File Root;
-    private ServerSocket Server_Socket;
+    private final File Root;
+    private final ServerSocket Server_Socket;
     private final Boolean Log;
 
     public BasicWebserver(File root, int port, Boolean log) throws IOException {
 
-        Root = root.getCanonicalFile();                  //Reference to index.html
-        System.out.println(Root);                       //sends index.html
+        Root = root.getCanonicalFile();            //Reference to index.html
+        //System.out.println(Root);                 //sends index.html
         if (!Root.isDirectory()) {
             throw new IOException("No directory");
         }
@@ -42,12 +42,10 @@ public class BasicWebserver extends Thread {
 
                 Request request = new Request(socket, Root, Log);
                 request.start();
-            }
-            catch (SocketException e) {
+            } catch (SocketException e) {
                 System.out.println(e.getMessage());
                 break;
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
                 break;
             }

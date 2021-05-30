@@ -36,12 +36,12 @@ public class Request extends Thread {
 
             if (request == null || request.trim().length() == 0)
                 return;
-            if(Log)
+            if (Log)
                 writeAccess(request);
 
             //Just GET is implemented
             if (!request.startsWith("GET")) {
-                sendError(Out, Status.NOT_IMPLEMENTED,"Just the GET HTTP-Method is implemented.");
+                sendError(Out, Status.NOT_IMPLEMENTED, "Just the GET HTTP-Method is implemented.");
                 return;
             }
 
@@ -55,7 +55,7 @@ public class Request extends Thread {
             //calls the index.html file
             IndexFile = new File(Root, URLDecoder.decode(Path, StandardCharsets.UTF_8)).getCanonicalFile();
 
-            if(!checkFile())
+            if (!checkFile())
                 return;
 
             //Loads file
@@ -123,6 +123,7 @@ public class Request extends Thread {
 
         return true;
     }
+
     private void sendError(BufferedOutputStream out, Status status, String reason)
             throws IOException {
         String msg = status.getMessage() + " : " + reason;
@@ -136,7 +137,7 @@ public class Request extends Thread {
         String header =
                 "HTTP/1.1 " + status.getCode() + " " + status.getMessage()
                         + "\r\nDate: " + getTime(System.currentTimeMillis())
-                        + "\r\nServer: SimpleWebserver"
+                        + "\r\nServer: BasicWebserver"
                         + "\r\nContent-Type: " + contentType
                         + "\r\nContent-Length: " + length
                         + "\r\nLast-Modified: " + getTime(time)
